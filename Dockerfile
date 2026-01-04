@@ -1,16 +1,14 @@
-FROM maven:3.8.6-openjdk-11 as build
+# Build stage
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace/app
-
 COPY pom.xml .
-
-RUN mvn -B -e -C -T 1C org.apache.maven.plugins:maven-dependency-plugin:3.0.2:go-offline
-
+RUN mvn -B -e -C dependency:go-offline
 COPY . .
-RUN mvn clean package -Dmaven.test.skip=true
+RUN mvn clean package -DskipTests
 
-
-FROM openjdk:21-buster
-VOLUME /tmp
-ARG DEPENDENCY=/workspace/app/target/dependency
-COPY --from=build /workspace/app/target/sample-spring-boot-on-kubernetes-1.3-SNAPSHOT.jar app.jar
-ENTRYPOINT ["java","-jar", "app.jar"]
+# Runtime stage
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /workspace/app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","app.jar"]
